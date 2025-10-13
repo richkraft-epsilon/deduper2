@@ -9,7 +9,7 @@ import java.util.List;
  * 
  *  1) Implement deduping logic using only event id
  *  2) Dedupe events going into the BusinessLogicProcessor
- *  3) Create another deduping version which dedupes by the same user, event, and timestamp within a configurable ttl
+ *  3) Create another deduping version which dedupes by the same user, event type, and timestamp within a configurable ttl
  *  4) Create a single unit test and describe other scenarios you would test
  *  5) Compose the two deduping logics such that further rules are easily added
  *  6) Make the Processor threadsafe
@@ -66,6 +66,13 @@ public class Main {
 		 * returns true if the event is successfully processed, false if the event is not successfully processed and should be seen again.
 		 */
 		public boolean processEvent(Event e) {
+<<<<<<< HEAD
+=======
+			if (deduper.isDuplicate(e)) {
+				return false;
+			}
+
+>>>>>>> 39adab4 (fix description)
 			/*
 			 * Some abstract black box processing of the event
 			 */
