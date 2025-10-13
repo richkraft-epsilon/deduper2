@@ -8,29 +8,35 @@ import java.util.List;
  * Tasks: 
  * 
  *  1) Implement deduping logic using only event id
- *  2) Dedupe events going into the BusinessLogicProcessor
- *  3) Create another deduping version which dedupes by the same user, event type, and timestamp within a configurable ttl
+ *  2) Implement deduping logic using user, type and timestamp
+ *  3) Implement deduping logic using user, type and a timestamp within a second
  *  4) Create a single unit test and describe other scenarios you would test
- *  5) Compose the two deduping logics such that further rules are easily added
- *  6) Make the Processor threadsafe
- *  7) Make the Processor interface asynchronous
+ *  5) Use composition to combine the Dedupers, such that future definitions are easily added
+ *  6) Make the Deduper threadsafe
+ *  7) Make the Deduper interface asynchronous
+ * 
  */
 public class Main {
 
 	public static void main(String[] args) {
 	    System.out.println("Starting...");
 	    
-		Instant startTime = Instant.parse("2010-01-01T00:00:00Z");
-		BusinessLogicProcessor processor = new BusinessLogicProcessor();
+		final Instant startTime = Instant.parse("2010-01-01T00:00:00Z");
+		final BusinessLogicProcessor processor = new BusinessLogicProcessor(new StepOneDeduper());
 
-		List<Event> events = List.of(
+		final List<Event> events = List.of(
 				new Event("abc123", "user1", "click", startTime),
 				new Event("def456", "user2", "impression", startTime.plus(Duration.ofMinutes(1))),
-				new Event("ghi789", "user1", "impression", startTime.plus(Duration.ofMinutes(5))),
-				new Event("abc123", "user1", "click", startTime) // duplicate
+				new Event("ghi789", "user1", "impression", startTime.plus(Duration.ofMinutes(2))),
+				new Event("abc123", "user1", "click", startTime), // duplicate for step 1
+				new Event("abc123-1", "user1", "click", startTime), // fuzzy duplicate for step 2
+				new Event("abc123-2", "user1", "click", startTime.plus(Duration.ofMillis(1))) // fuzzy duplicate for step 3
 		);
 
-		// TODO: Loop through each event to call processEvent method, and print processed and duplicate events
+		for (Event e : events) {
+			final boolean processed = processor.processEvent(e);
+			System.out.println(String.format("Event %s processed: %s", e, processed));
+		}
 	}
 
 	/**
@@ -38,16 +44,32 @@ public class Main {
 	 */
 	public static final class Event {
 
-		String eventId;
-		String userId;
-		String type;
-		Instant timestamp;
+		private String eventId;
+		private String userId;
+		private String type;
+		private Instant timestamp;
 
 		Event(String eventId, String userId, String type, Instant timestamp) {
 			this.eventId = eventId;
 			this.userId = userId;
 			this.type = type;
 			this.timestamp = timestamp;
+		}
+
+		public String getEventId() {
+			return eventId;
+		}
+
+		public String getUserId() {
+			return userId;
+		}
+
+		public String getType() {
+			return type;
+		}
+
+		public Instant getTimestamp() {
+			return timestamp;
 		}
 
 		@Override
@@ -57,22 +79,51 @@ public class Main {
 		}
 	}
 
+	public static class StepOneDeduper {
+		/**
+		 * returns true if the event is a duplicate, false otherwise
+		 */
+		public boolean isDuplicate(Event e) {
+			return false;
+		}
+	}
+
+	public static class StepTwoDeduper {
+		/**
+		 * returns true if the event is a duplicate, false otherwise
+		 */
+		public boolean isDuplicate(Event e) {
+			return false;
+		}
+	}
+
+	public static class StepThreeDeduper {
+		/**
+		 * returns true if the event is a duplicate, false otherwise
+		 */
+		public boolean isDuplicate(Event e) {
+			return false;
+		}
+	}
+
 	/**
 	 * This class is final and cannot be modified.
 	 */
 	public static class BusinessLogicProcessor {
 
+		private final StepOneDeduper deduper;
+
+		public BusinessLogicProcessor(final StepOneDeduper deduper) {
+			this.deduper = deduper;
+		}
+
         /**
-		 * returns true if the event is successfully processed, false if the event is not successfully processed and should be seen again.
+		 * returns true if the event is successfully processed, false if the event is not successfully processed.
 		 */
 		public boolean processEvent(Event e) {
-<<<<<<< HEAD
-=======
 			if (deduper.isDuplicate(e)) {
 				return false;
 			}
-
->>>>>>> 39adab4 (fix description)
 			/*
 			 * Some abstract black box processing of the event
 			 */
