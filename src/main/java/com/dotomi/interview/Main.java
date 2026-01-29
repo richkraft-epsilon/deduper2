@@ -19,10 +19,24 @@ import java.util.List;
 public class Main {
 
 	public static void main(String[] args) {
-	    System.out.println("Starting...");
-	    
+		System.out.println("Starting...");
+		
 		final Instant startTime = Instant.parse("2010-01-01T00:00:00Z");
-		final BusinessLogicProcessor processor = new BusinessLogicProcessor(new StepOneDeduper());
+		final Deduper deduper;
+		switch (args[0].toLowerCase()) {
+			case "one":
+				deduper = new StepOneDeduper();
+				break;
+			case "two":
+				deduper = new StepTwoDeduper();
+				break;
+			case "three":
+				deduper = new StepThreeDeduper();
+				break;
+			default:
+				throw new RuntimeException("Unsupported step");
+		}
+		final BusinessLogicProcessor processor = new BusinessLogicProcessor(deduper);
 
 		final List<Event> events = List.of(
 				new Event("abc123", "user1", "click", startTime),
@@ -79,31 +93,38 @@ public class Main {
 		}
 	}
 
-	public static class StepOneDeduper {
+	public static class StepOneDeduper implements Deduper {
 		/**
 		 * returns true if the event is a duplicate, false otherwise
+		 * use event id as the key
 		 */
 		public boolean isDuplicate(Event e) {
 			return false;
 		}
 	}
 
-	public static class StepTwoDeduper {
+	public static class StepTwoDeduper implements Deduper {
 		/**
 		 * returns true if the event is a duplicate, false otherwise
+		 * use the user, type and timestamp as the key
 		 */
 		public boolean isDuplicate(Event e) {
 			return false;
 		}
 	}
 
-	public static class StepThreeDeduper {
+	public static class StepThreeDeduper implements Deduper {
 		/**
 		 * returns true if the event is a duplicate, false otherwise
+		 * use the user, type and timestamp within a second as the key
 		 */
 		public boolean isDuplicate(Event e) {
 			return false;
 		}
+	}
+
+	public static interface Deduper {
+		boolean isDuplicate(Event e);
 	}
 
 	/**
@@ -111,13 +132,13 @@ public class Main {
 	 */
 	public static class BusinessLogicProcessor {
 
-		private final StepOneDeduper deduper;
+		private final Deduper deduper;
 
-		public BusinessLogicProcessor(final StepOneDeduper deduper) {
+		public BusinessLogicProcessor(final Deduper deduper) {
 			this.deduper = deduper;
 		}
 
-        /**
+		/**
 		 * returns true if the event is successfully processed, false if the event is not successfully processed.
 		 */
 		public boolean processEvent(Event e) {
